@@ -85,5 +85,8 @@ This is the place for you to write reflections:
 ### Mandatory (Subscriber) Reflections
 
 #### Reflection Subscriber-1
+1. We use `RwLock<Vec<Notification>>` because the notification list is shared state that can be accessed by multiple Rocket requests at the same time. The `Vec` itself is not thread-safe, so access must be synchronized. `RwLock` is a good fit here because this repository has two different access patterns: `add()` performs writes, while `list_all_as_string()` only performs reads. With `RwLock`, multiple readers can access the notification list concurrently as long as no writer is active. If we used `Mutex` instead, all reads and writes would be serialized behind one exclusive lock, which would still be correct but less efficient for this case.
+
+2. Rust does not allow unrestricted mutation of global `static` data in safe code because it wants to prevent data races and undefined behavior at compile time. A mutable global value can be accessed from many places at once, and without strict synchronization that can easily break Rust's guarantees about aliasing and thread safety. In Java, mutating a static field is allowed because safety is enforced differently, mostly at runtime and by programmer discipline. In Rust, the language forces us to make shared mutable state explicit by wrapping it in safe synchronization primitives such as `RwLock`, `Mutex`, or concurrent collections like `DashMap`. `lazy_static` helps us create such global values safely at runtime, but the actual mutation still has to go through these synchronized containers.
 
 #### Reflection Subscriber-2
